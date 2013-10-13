@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This script disables a cyrusol designed virtual host for nginx.
+#
+# Installation: save this file and make it executable
+#
+# Usage: ngxvhen <USER>
+
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root."
+	exit 1
+fi
+
+if grep -q vh-$1 /etc/passwd; then
+	rm /etc/nginx/sites-enabled/vh-$1
+	service nginx reload
+else
+	echo "Given vhost does not exist."
+	exit 1
+fi
+
+exit 0

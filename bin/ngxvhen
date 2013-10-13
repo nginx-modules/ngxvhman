@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# This script enables cyrusol designed virtual hosts for nginx.
+#
+# Installation: save this file and make it executable
+#
+# Usage: ngxvhen <USER>
+
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root."
+	exit 1
+fi
+
+if grep -q vh-$1 /etc/passwd; then
+	lastdir = $(pwd)
+	cd /etc/nginx/sites-enabled
+	ln -s ../sites-available/vh-$1
+	cd $lastdir
+	service nginx reload
+else
+	echo "Given vhost does not exist."
+	exit 1
+fi
+
+exit 0

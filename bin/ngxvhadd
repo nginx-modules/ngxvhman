@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# This script adds cyrusol designed virtual hosts for nginx.
+# This includes:
+#	- chrooted sftp in /home/jail/vh-<USER>
+#	- directory structure skeleton at /root/vhost/
+#	- vh-<USER>.conf file in /etc/nginx/sites-available (no symlink)
+#	- db-<USER> SQL user with db-<USER> as his personal default DB
+#
+# Installation: save this file and make it executable
+#
+# Usage: ngxvhadd <USER> <SQLPASSWORD>
+
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root."
+	exit 1
+fi
+
+if grep -q vh-$1 /etc/passwd; then
+	echo "Given vhost already exists."
+	exit 1
+else
+	echo "Prepare directory structure..."
+	mkdir /home/jail/vh-$1
+	echo "Create user vh-$1..."
+	useradd --key UID_MIN=2000 \
+		--skel /root/vhost \
+		--user-group \
+		--home /home/jail/vh-$1/private \
+		--create-home \
+		--groups 1900 \
+		--shell /bin/false \
+		vh-$1
+	gpasswd -a www-data vh-$1
+	echo "Prepare authorized_keys file..."
+	mkdir /home/jail/vh-$1/.ssh
+	chmod 750 /home/jail/vh-$1/.ssh
+	touch /home/jail/vh-$1/.ssh/authorized_keys
+	chmod 640 /home/jail/vh-$1/.ssh/authorized_keys
+	chown -R root:vh-$1 /home/jail/vh-$1/.ssh
+	echo "Prepare MariaDB/MySQL database and user..."
+	sqluser="CREATE USER 'vh-$1'@'localhost' IDENTIFIED BY '$2';"
+	sqldb="CREATE DATABASE \`db-$1\` CHARACTER SET utf8 COLLATE utf8_general_ci;"
+	sqlperm="GRANT ALL PRIVILEGES ON \`db-$1\`.* TO 'vh-$1'@'localhost' IDENTIFIED BY '$2';"
+	mysql -u root -p -e "$sqluser $sqldb $sqlperm"
+	echo "done."
+fi
+
+exit 0

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This script reverts all changes made by ngxvhadd.
+#
+# Installation: save this file and make it executable
+#
+# Usage: ngxvhdel <USER>
+
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root."
+	exit 1
+fi
+
+if grep -q vh-$1 /etc/passwd; then
+	echo "Cleaning MariaDB/MySQL database..."
+	sqluser="DROP USER 'vh-$1'@'localhost';"
+	sqldb="DROP DATABASE \`db-$1\`;"
+	mysql -u root -p -e "$sqluser $sqldb"
+	echo "Delete user vh-$1..."
+	gpasswd -d www-data vh-$1
+	userdel vh-$1
+	echo "Cleaning directory structure..."
+	rm -R /home/jail/vh-$1
+	echo "done."	
+else
+	echo "Given vhost does not exist."
+	exit 1
+fi
+
+exit 0
